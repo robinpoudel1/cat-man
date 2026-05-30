@@ -80,7 +80,7 @@ canvas.powered {
   <span><span class="hud-label">LEVEL </span><span class="hud-val" id="levelEl">1</span></span>
   <span><span class="hud-label">HI </span><span class="hud-val" id="hiEl">0</span></span>
 </div>
-<div id="power-indicator">⚡ POWER MODE — DOGS INCOMING! ⚡</div>
+<div id="power-indicator">🐭 POWER MODE — MICE APPEAR! EAT THEM! 🐭</div>
 <div id="power-bar-wrap">
   <div id="power-bar-bg">
     <div id="power-bar-fill"></div>
@@ -352,39 +352,61 @@ function nextLevel() {
 
 // ── MAIN LOOP ─────────────────────────────────────────────────────────────────
 let raf;
-function loop() {
+// Fixed timestep: all game logic runs at exactly 60fps regardless of display Hz
+const MS_PER_TICK = 1000 / 60;
+let lastTimestamp = 0;
+let accumulator = 0;
+
+function loop(timestamp) {
   raf = requestAnimationFrame(loop);
+
+  // Cap delta to 200ms to avoid spiral of death after tab focus loss
+  const delta = Math.min(timestamp - lastTimestamp, 200);
+  lastTimestamp = timestamp;
+
   if (gameState !== 'playing' || paused) { draw(); return; }
 
-  // Pac-Man steps on timer
-  moveTimer++;
-  if (moveTimer >= pacSpeed()) {
-    moveTimer = 0;
-    stepPac();
-    checkDots();
-    checkCollisions();
-    // Mouth animation
-    if (pac.dc !== 0 || pac.dr !== 0) {
-      pac.mouth += pac.mdir * 0.15;
-      if (pac.mouth > 0.38) pac.mdir = -1;
-      if (pac.mouth < 0.03) pac.mdir = 1;
-    }
-  }
+  accumulator += delta;
 
-  // Each ghost has its own independent timer
-  ghosts.forEach(g => {
-    g.moveTimer = (g.moveTimer || 0) + 1;
-    if (g.moveTimer >= g.spd) {
-      g.moveTimer = 0;
-      stepGhost(g);
+  // Run as many fixed 60fps ticks as have accumulated
+  while (accumulator >= MS_PER_TICK) {
+    accumulator -= MS_PER_TICK;
+
+    // Pac-Man steps
+    moveTimer++;
+    if (moveTimer >= pacSpeed()) {
+      moveTimer = 0;
+      stepPac();
+      checkDots();
       checkCollisions();
+      if (pac.dc !== 0 || pac.dr !== 0) {
+        pac.mouth += pac.mdir * 0.15;
+        if (pac.mouth > 0.38) pac.mdir = -1;
+        if (pac.mouth < 0.03) pac.mdir = 1;
+      }
     }
-  });
 
-  // Power pellet countdown
-  if (powerFrames > 0) {
-    powerFrames--;
-    if (powerFrames === 0) { ghosts.forEach(g => { if (!g.eaten) g.scared = false; }); deactivatePowerUI(); }
+    // Ghost steps — each on own timer
+    ghosts.forEach(g => {
+      g.moveTimer = (g.moveTimer || 0) + 1;
+      if (g.moveTimer >= g.spd) {
+        g.moveTimer = 0;
+        stepGhost(g);
+        checkCollisions();
+      }
+    });
+
+    // Power pellet countdown
+    if (powerFrames > 0) {
+      powerFrames--;
+      if (powerFrames === 0) {
+        ghosts.forEach(g => { if (!g.eaten) g.scared = false; });
+        deactivatePowerUI();
+      }
+    }
+
+    // Flash countdown
+    if (flashFrames > 0) flashFrames--;
   }
 
   updatePowerBar();
@@ -413,6 +435,11 @@ function draw() {
             ctx.beginPath(); ctx.moveTo(x+x1,y+y1); ctx.lineTo(x+x2,y+y2); ctx.stroke();
           }
         });
+      } else if (v === 4 && powerFrames > 0) {
+        // Revival zone warning — pulses red/orange during power mode
+        const danger = 0.15 + 0.1 * Math.sin(Date.now() / 150);
+        ctx.fillStyle = `rgba(255, 60, 0, ${danger})`;
+        ctx.fillRect(x, y, CELL, CELL);
       } else if (v === 2) {
         ctx.fillStyle = '#aaddff';
         ctx.beginPath(); ctx.arc(x+CELL/2, y+CELL/2, 2.5, 0, Math.PI*2); ctx.fill();
@@ -480,72 +507,110 @@ function draw() {
     });
   }
 
-  // Enemies: mice normally, dogs when scared (cat is afraid of dogs!)
-  ghosts.forEach(g => {
+  // Normal = 🐶 Dogs chasing cat. Power pellet = 🐭 Colourful scared mice!
+  const MOUSE_COLORS = ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#FF922B','#cc5de8','#20c997','#f06595'];
+  ghosts.forEach((g, gi) => {
     const gx = g.px, gy = g.py, R = CELL/2 - 1;
-    const flash = powerFrames > 0 && powerFrames < 120 && Math.floor(Date.now()/220)%2===0;
+    const flash = powerFrames > 0 && powerFrames < 180 && Math.floor(Date.now()/220)%2===0;
 
     if (g.eaten) {
-      // Ghost trail — just eyes
-      ctx.fillStyle = 'rgba(200,200,200,0.5)';
-      ctx.beginPath(); ctx.arc(gx, gy, R*0.5, 0, Math.PI*2); ctx.fill();
+      // Paw prints left behind
+      ctx.fillStyle = 'rgba(255,180,100,0.4)';
+      ctx.beginPath(); ctx.arc(gx, gy, R*0.4, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,180,100,0.2)';
+      [-6,6].forEach(ox => { ctx.beginPath(); ctx.arc(gx+ox, gy-R*0.5, R*0.18, 0, Math.PI*2); ctx.fill(); });
       return;
     }
 
     if (g.scared) {
-      // 🐶 Dog — cat runs away! Brown dog shape
-      ctx.fillStyle = flash ? '#fff' : '#8B4513';
+      // 🐭 Scared colourful mice — cat can eat these!
+      const mc = flash ? '#ffffff' : MOUSE_COLORS[gi % MOUSE_COLORS.length];
       // Body
-      ctx.beginPath(); ctx.ellipse(gx, gy+2, R*0.85, R*0.7, 0, 0, Math.PI*2); ctx.fill();
-      // Head
-      ctx.beginPath(); ctx.arc(gx, gy - R*0.3, R*0.7, 0, Math.PI*2); ctx.fill();
-      // Floppy ears
-      ctx.fillStyle = flash ? '#ddd' : '#6B3410';
-      ctx.beginPath(); ctx.ellipse(gx - R*0.65, gy - R*0.1, R*0.25, R*0.55, -0.3, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(gx + R*0.65, gy - R*0.1, R*0.25, R*0.55, 0.3, 0, Math.PI*2); ctx.fill();
-      // Eyes
-      ctx.fillStyle = '#000';
-      ctx.beginPath(); ctx.arc(gx - R*0.28, gy - R*0.35, R*0.12, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(gx + R*0.28, gy - R*0.35, R*0.12, 0, Math.PI*2); ctx.fill();
-      // Nose
-      ctx.fillStyle = '#222';
-      ctx.beginPath(); ctx.arc(gx, gy - R*0.1, R*0.14, 0, Math.PI*2); ctx.fill();
-      // Tail
-      ctx.strokeStyle = flash ? '#ddd' : '#6B3410'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(gx + R*0.8, gy+2);
-      ctx.quadraticCurveTo(gx + R*1.4, gy - R*0.5, gx + R*1.1, gy - R); ctx.stroke();
-    } else {
-      // 🐭 Mouse — the enemy cat chases
-      ctx.fillStyle = g.color;
-      // Round body
+      ctx.fillStyle = mc;
       ctx.beginPath(); ctx.ellipse(gx, gy+2, R*0.75, R*0.6, 0, 0, Math.PI*2); ctx.fill();
       // Head
       ctx.beginPath(); ctx.arc(gx, gy - R*0.25, R*0.65, 0, Math.PI*2); ctx.fill();
       // Round ears
       ctx.beginPath(); ctx.arc(gx - R*0.5, gy - R*0.75, R*0.32, 0, Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.arc(gx + R*0.5, gy - R*0.75, R*0.32, 0, Math.PI*2); ctx.fill();
-      // Inner ears
-      ctx.fillStyle = '#ffb6c1';
+      // Inner ears (pink always)
+      ctx.fillStyle = flash ? '#ffaacc' : '#ffb6c1';
       ctx.beginPath(); ctx.arc(gx - R*0.5, gy - R*0.75, R*0.18, 0, Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.arc(gx + R*0.5, gy - R*0.75, R*0.18, 0, Math.PI*2); ctx.fill();
-      // Eyes
-      ctx.fillStyle = '#000';
-      ctx.beginPath(); ctx.arc(gx - R*0.25, gy - R*0.3, R*0.1, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(gx + R*0.25, gy - R*0.3, R*0.1, 0, Math.PI*2); ctx.fill();
-      // Eye shine
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(gx - R*0.21, gy - R*0.33, R*0.04, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(gx + R*0.29, gy - R*0.33, R*0.04, 0, Math.PI*2); ctx.fill();
+      // Scared X eyes
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+      [[-0.28],[0.28]].forEach(([ox]) => {
+        ctx.beginPath(); ctx.moveTo(gx+ox*R-3, gy-R*0.38-3); ctx.lineTo(gx+ox*R+3, gy-R*0.38+3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gx+ox*R+3, gy-R*0.38-3); ctx.lineTo(gx+ox*R-3, gy-R*0.38+3); ctx.stroke();
+      });
+      // Trembling mouth (wavy)
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(gx - R*0.25, gy - R*0.05);
+      ctx.quadraticCurveTo(gx, gy - R*0.18, gx + R*0.25, gy - R*0.05);
+      ctx.stroke();
       // Snout
-      ctx.fillStyle = '#ffb6c1';
-      ctx.beginPath(); ctx.ellipse(gx, gy - R*0.05, R*0.22, R*0.15, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = flash ? '#ffaacc' : '#ffb6c1';
+      ctx.beginPath(); ctx.ellipse(gx, gy - R*0.1, R*0.2, R*0.13, 0, 0, Math.PI*2); ctx.fill();
+      // Tail (curly, coloured)
+      ctx.strokeStyle = mc; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(gx + R*0.7, gy + R*0.4);
+      ctx.bezierCurveTo(gx+R*1.4, gy+R*0.8, gx+R*1.6, gy-R*0.2, gx+R*1.1, gy-R*0.5);
+      ctx.stroke();
+      // Star sparkles around scared mouse
+      if (!flash) {
+        ctx.fillStyle = mc;
+        [[R*1.2,-R*0.8],[- R*1.1,-R*0.6],[R*1.0,R*0.2]].forEach(([sx,sy]) => {
+          ctx.font = '9px serif'; ctx.textAlign='center';
+          ctx.fillText('✦', gx+sx, gy+sy);
+        });
+      }
+    } else {
+      // 🐶 Normal dog — dangerous! Chases the cat
+      ctx.fillStyle = g.color;
+      // Body
+      ctx.beginPath(); ctx.ellipse(gx, gy+2, R*0.85, R*0.7, 0, 0, Math.PI*2); ctx.fill();
+      // Head
+      ctx.beginPath(); ctx.arc(gx, gy - R*0.3, R*0.72, 0, Math.PI*2); ctx.fill();
+      // Floppy ears
+      const earCol = g.color === '#FF0000' ? '#cc0000'
+                   : g.color === '#FFB8FF' ? '#dd88dd'
+                   : g.color === '#00FFFF' ? '#00aaaa'
+                   : '#cc8800';
+      ctx.fillStyle = earCol;
+      ctx.beginPath(); ctx.ellipse(gx - R*0.68, gy - R*0.1, R*0.26, R*0.52, -0.25, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(gx + R*0.68, gy - R*0.1, R*0.26, R*0.52,  0.25, 0, Math.PI*2); ctx.fill();
+      // Snout
+      ctx.fillStyle = earCol;
+      ctx.beginPath(); ctx.ellipse(gx, gy - R*0.05, R*0.3, R*0.22, 0, 0, Math.PI*2); ctx.fill();
+      // Eyes (angry — angled brows)
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.ellipse(gx-R*0.28, gy-R*0.38, R*0.16, R*0.14, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(gx+R*0.28, gy-R*0.38, R*0.16, R*0.14, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.arc(gx-R*0.28+g.dc*2, gy-R*0.38+g.dr*2, R*0.09, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(gx+R*0.28+g.dc*2, gy-R*0.38+g.dr*2, R*0.09, 0, Math.PI*2); ctx.fill();
+      // Angry brows
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(gx-R*0.42, gy-R*0.58); ctx.lineTo(gx-R*0.14, gy-R*0.52); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(gx+R*0.14, gy-R*0.52); ctx.lineTo(gx+R*0.42, gy-R*0.58); ctx.stroke();
       // Nose
-      ctx.fillStyle = '#222';
-      ctx.beginPath(); ctx.arc(gx, gy - R*0.12, R*0.07, 0, Math.PI*2); ctx.fill();
-      // Tail
-      ctx.strokeStyle = g.color; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(gx + R*0.7, gy + R*0.4);
-      ctx.quadraticCurveTo(gx + R*1.5, gy + R*0.8, gx + R*1.3, gy - R*0.3); ctx.stroke();
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.ellipse(gx, gy-R*0.12, R*0.14, R*0.1, 0, 0, Math.PI*2); ctx.fill();
+      // Mouth (growling)
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(gx - R*0.28, gy + R*0.1);
+      ctx.quadraticCurveTo(gx, gy + R*0.22, gx + R*0.28, gy + R*0.1);
+      ctx.stroke();
+      // Wagging tail
+      const wag = Math.sin(Date.now() / 120) * 0.4;
+      ctx.strokeStyle = earCol; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(gx + R*0.8, gy + R*0.3);
+      ctx.quadraticCurveTo(gx+R*1.5+wag*10, gy-R*0.3, gx+R*1.2, gy-R*0.9);
+      ctx.stroke();
     }
   });
 
@@ -560,7 +625,7 @@ function draw() {
   if (gameState === 'gameover') {
     ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle = '#f55'; ctx.font = 'bold 30px monospace'; ctx.textAlign = 'center';
-    ctx.fillText('THE DOG GOT YOU! 🐶', canvas.width/2, canvas.height/2 - 10);
+    ctx.fillText('A DOG CAUGHT YOU! 🐶', canvas.width/2, canvas.height/2 - 10);
     ctx.font = '15px monospace'; ctx.fillStyle = '#aaa';
     ctx.fillText(`Score: ${score}  |  Best: ${hiScore}`, canvas.width/2, canvas.height/2 + 22);
   }
@@ -571,6 +636,31 @@ function draw() {
     ctx.font = '13px monospace'; ctx.fillStyle = '#aaa';
     ctx.fillText('P to resume', canvas.width/2, canvas.height/2 + 26);
   }
+  // Revival zone caution overlay during power mode
+  if (powerFrames > 0) {
+    const zoneX = 6 * CELL, zoneY = 7 * CELL;
+    const zoneW = 9 * CELL, zoneH = 7 * CELL;
+    const pulse = 0.6 + 0.4 * Math.sin(Date.now() / 200);
+    const flashWarn = powerFrames < 180 && Math.floor(Date.now()/220)%2===0;
+    // Dashed pulsing border
+    ctx.strokeStyle = flashWarn ? `rgba(255,255,0,${pulse})` : `rgba(255,60,0,${pulse})`;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(zoneX + 1, zoneY + 1, zoneW - 2, zoneH - 2);
+    ctx.setLineDash([]);
+    // Warning label above zone
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = flashWarn ? '#ffff00' : `rgba(255,100,0,${pulse})`;
+    ctx.fillText('⚠ REVIVAL ZONE — STAY OUT ⚠', zoneX + zoneW/2, zoneY - 4);
+    // Skull icons at corners
+    ctx.font = '11px serif';
+    [[zoneX+8, zoneY+14],[zoneX+zoneW-8, zoneY+14],
+     [zoneX+8, zoneY+zoneH-3],[zoneX+zoneW-8, zoneY+zoneH-3]].forEach(([cx,cy]) => {
+      ctx.fillText('💀', cx, cy);
+    });
+  }
+
   // Canvas flash overlay
   if (flashFrames > 0) {
     const idx = Math.floor((1 - flashFrames/FLASH_DURATION) * flashColors.length);
@@ -620,7 +710,7 @@ function playDeath() { [220,196,174,155,138,116].forEach((f,i)=>setTimeout(()=>p
 function startGame() {
   getAC(); initGame(); gameState = 'playing';
   document.getElementById('start-btn').style.display = 'none';
-  if (!raf) loop();
+  if (!raf) requestAnimationFrame(ts => { lastTimestamp = ts; loop(ts); });
 }
 
 // ── POWER UI ─────────────────────────────────────────────────────────────────
