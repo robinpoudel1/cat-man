@@ -1,171 +1,86 @@
 # 🐱 CAT-MAN
 
-A browser-based arcade game inspired by the classic Pac-Man, with a full feline twist. You play as **Cat-Man** — an orange tabby navigating a neon-lit maze, chasing mice and fleeing angry dogs.
+A browser-based arcade game inspired by the classic Pac-Man, with a feline twist. You play as Cat-Man — an orange tabby on a mission to catch mice while dodging dogs through a neon-lit maze. Fully playable on desktop and mobile.
 
-🔴 **Live Demo:** [robinpoudel1.github.io/cat-man](https://robinpoudel1.github.io/cat-man)
+## 🎮 Gameplay
 
----
+Navigate Cat-Man through a tile-based maze, gobbling up dots and collecting power pellets. Clear every dot on the board to advance to the next level.
 
-## 🎮 How It Works
-
-You are a cat. The maze is full of **angry dogs** that chase you. Collect all the fish pellets to clear the level — but avoid the dogs or you'll lose a life.
-
-Eat a **power pellet** (glowing gold orb) and the whole dynamic flips:
-
-- Dogs transform into **colourful scared mice** 🐭
-- The **revival zone lights up** with a danger warning — mice eaten there revive instantly as dogs!
-- You have **15 seconds** to hunt them down before they turn back
-
----
+- **Dogs** are your enemies — avoid them or they'll cost you a life
+- **Power Pellets** (large glowing orbs) flip the script: dogs turn into scared **mice**, and Cat-Man becomes the hunter
+- **Bonus Fish 🐟** are hidden in the ghost house — grab one for a big point bonus
+- Eat a scared mouse for **200 bonus points**, shown as a floating score popup
+- Clear all dots to advance — levels get progressively faster
 
 ## 🕹️ Controls
 
-| Key | Action |
-|-----|--------|
-| `Arrow Keys` / `WASD` | Move Cat-Man |
-| `Enter` / `Space` | Start / Restart |
+| Input | Action |
+|-------|--------|
+| `Arrow Keys` or `WASD` | Move Cat-Man |
+| Swipe (mobile) | Move Cat-Man |
+| `Enter` or `Space` | Start / Restart game |
 | `P` | Pause / Resume |
-
----
+| 🔊 Button | Toggle mute |
 
 ## 🏆 Scoring
 
 | Action | Points |
 |--------|--------|
-| Fish pellet (dot) | 10 |
+| Regular dot | 10 |
 | Power pellet | 50 |
+| Bonus fish 🐟 | 500 |
 | Eating a scared mouse | 200 |
 
-High score is tracked for the session.
+Your high score is saved to **localStorage** and persists between sessions.
 
----
+## ✨ Features
 
-## ⚡ Power Pellet Mode
-
-When Cat-Man eats a power pellet, the following happen simultaneously:
-
-1. **Screen flashes** orange → gold → white burst on the canvas
-2. **Canvas border** glows bright gold
-3. **Progress bar** appears below the HUD showing time remaining
-4. **"🐭 POWER MODE — MICE APPEAR! EAT THEM!"** indicator blinks
-5. All dogs on the map **transform into colourful scared mice** with X eyes and sparkles ✦
-6. The **revival zone** (ghost house) shows a pulsing red dashed border with ⚠ warning and 💀 skull icons
-7. In the **last 3 seconds**, the bar and border flash yellow as a warning
-8. When power expires, mice snap back to angry dogs 🐶
-
-> ⚠️ **Revival Zone rule:** Even if you eat a mouse inside the marked revival zone, it respawns immediately as a dog at that same spot. Stay out!
-
----
-
-## 👾 The Dogs (Enemies)
-
-| Name | Colour | Chase % | Speed |
-|------|--------|---------|-------|
-| Blinky | 🔴 Red | 40% | Fastest |
-| Pinky | 🩷 Pink | 30% | Fast |
-| Inky | 🩵 Cyan | 25% | Medium |
-| Clyde | 🟠 Orange | 20% | Medium |
-
-- Dogs only **actively chase** within 10 tiles — beyond that they wander randomly
-- Each dog has its own **independent move timer** so they never move in sync
-- Cat-Man is always **~2× faster** than the fastest dog
-
----
-
-## 🗺️ Levels
-
-| Level | Maze | Speed |
-|-------|------|-------|
-| 1 | Classic layout | Base |
-| 2 | New layout — tighter corridors | +1 |
-| 3+ | Level 2 layout repeats | Increases every 2 levels |
-
----
+- **3 unique maze layouts** — Level 1, 2, and 3 each have a distinct design; Level 4+ reuse Layout 3 with increasing speed
+- **Mobile support** — swipe controls, viewport meta tag, and touch-action handling prevent scroll interference
+- **Mute button** — toggle sound on/off at any time
+- **Bonus fish tiles** — hidden collectibles worth 500 points per level
+- **Floating score popups** — points animate and fade out at the point of collection
+- **FM synthesis audio** — all sound effects are procedurally generated cat-like meows using the Web Audio API
+- **Persistent high score** — saved to localStorage across sessions
+- **Power pellet mode** — animated progress bar, glowing canvas border, and a flashing low-power warning
+- **Frame-rate independent game loop** — uses a fixed timestep accumulator for consistent speed across devices
+- Four enemies with unique speeds and chase probabilities, each with direction-aware eye animations
 
 ## 🚀 Getting Started
 
-No build tools or dependencies — one HTML file, runs entirely in the browser.
+No build tools, no dependencies — just open the file in a browser.
 
 ```bash
 # Clone the repo
-git clone https://github.com/robinpoudel1/cat-man.git
+git clone https://github.com/your-username/cat-man.git
 
 # Open the game
-open index.html
+open catman-game.html
 ```
 
-Or visit the live demo: **[robinpoudel1.github.io/cat-man](https://robinpoudel1.github.io/cat-man)**
-
-**Browser support:** Chrome, Firefox, Safari, Edge (any modern browser with HTML5 Canvas + Web Audio API)
-
----
+Or simply download `catman-game.html` and double-click it. Works on any modern browser — Chrome, Firefox, Safari, Edge.
 
 ## 🗂️ Project Structure
 
+The entire game is self-contained in a single HTML file:
+
 ```
-index.html          # Entire game — self-contained, no dependencies
-README.md           # This file
+catman-game.html
+├── CSS          — Layout, HUD, power bar, Press Start 2P font, mobile styles
+├── Game logic   — Tile maps (3 levels), movement, collision, scoring, localStorage
+├── Rendering    — Canvas drawing for Cat-Man, dogs, mice, fish, floating texts
+└── Audio        — FM synthesis sound effects via Web Audio API
 ```
 
-### Inside `index.html`
+## 🛠️ Technical Notes
 
-| Section | Description |
-|---------|-------------|
-| `<style>` | Dark arcade UI, HUD, power bar, animations |
-| `MAPS[]` | Two 21×21 tile maps (0=open, 1=wall, 2=dot, 3=power pellet, 4=revival zone) |
-| `initGame()` | Resets all state for a fresh game |
-| `stepPac()` | Tile-based movement with queued input — one tile per timer tick |
-| `stepGhost(g)` | Per-dog AI: chase within 10 tiles or wander randomly |
-| `checkDots()` | Pellet collection, power mode trigger, level-clear detection |
-| `checkCollisions()` | Dog/mouse-Cat-Man hit detection (tile-exact) |
-| `activatePowerUI()` | Canvas flash, progress bar, indicator, sound burst |
-| `loop(timestamp)` | Fixed-timestep RAF loop — runs at 60fps logic on any display Hz |
-| `draw()` | Full canvas render including revival zone caution overlay |
-| Audio | Procedural Web Audio API — zero audio files |
-
----
-
-## ⚙️ Technical Notes
-
-- **Fixed timestep loop** — game logic always runs at exactly 60fps regardless of display refresh rate (60Hz, 120Hz, 144Hz). Uses an accumulator pattern to prevent speed variation across devices.
-- **Tile-based movement** — Cat-Man and dogs each move one tile per timer step. Input is queued so turns register at the next valid junction.
-- **Revival zone** — tile type `4` (empty, no dot). During power mode these tiles pulse red and the zone is outlined with a dashed danger border.
-- **Per-ghost timers** — each dog has its own `moveTimer` and `spd` so they never clump or synchronise.
-- **Power duration** — 15 seconds (900 ticks at 60fps). Warning kicks in at 180 ticks (~3s) remaining.
-- **Zero dependencies** — no npm, no frameworks, no CDN calls except Google Fonts.
-
----
-
-## 📋 Changelog
-
-| Version | Changes |
-|---------|---------|
-| v6 | Revival zone caution overlay — pulsing border, ⚠ label, 💀 skulls during power mode |
-| v5 | Swapped enemies: dogs are now normal, colourful mice appear during power mode |
-| v4 | Fixed-timestep loop — consistent speed on all devices and GitHub Pages |
-| v3 | Power pellet UI — canvas flash, progress bar, blinking indicator, sound burst |
-| v3 | Full Cat-Man reskin — cat face with ears/whiskers, dog/mouse characters |
-| v2 | Per-ghost independent timers, 65/35 chase/random AI, 10-tile chase range |
-| v2 | Ghost speeds fixed — all dogs 2× slower than Cat-Man |
-| v1 | Tile-based movement rebuild — fixed arrow key controls |
-| v0 | Initial Pac-Man build |
-
----
-
-## 🛠️ Vibe Coding Workflow
-
-Built iteratively with **Claude AI** (Perplexity) using natural language prompts — no manual coding:
-
-1. *"Build a Pac-Man game as a single HTML file"*
-2. *"Arrow keys aren't moving Pac-Man"*
-3. *"Make it Cat-Man — cat, mice, dogs"*
-4. *"Swap mice and dogs so dogs are the normal enemies"*
-5. *"Show a revival zone caution area during power mode"*
-6. *"The game runs too fast on GitHub Pages"* → fixed with timestep loop
-
-> **Tip for vibe coding:** Describe behaviour, not code. One feature at a time. The README and changelog are your spec — keep them updated as you go.
-
----
+- Movement is fully **tile-based**: Cat-Man steps one cell at a time on a fixed timer for crisp arcade-style control
+- The game loop uses a **fixed timestep accumulator** (`MS_PER_TICK = 1000/60`) so speed stays consistent regardless of display refresh rate
+- Each of the four enemies has an independent move timer, unique `chaseP` (chase probability), and a 12-tile activation range before switching to random wandering
+- The left/right tunnel on row 10 wraps both Cat-Man and enemies across the board
+- **Power pellet duration:** 15 seconds (900 ticks); the bar flashes red in the final 3 seconds
+- **High score** is read from and written to `localStorage` under the key `catman_hiscore`
+- All audio is generated with FM synthesis (carrier + modulator oscillators) — no audio files required
 
 ## 📄 License
 
