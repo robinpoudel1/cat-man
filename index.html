@@ -2,108 +2,111 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>CAT-MAN</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: monospace; color: #fff; }
-h1 { font-size: 24px; color: #FFD700; margin-bottom: 6px; letter-spacing: 4px; }
-#hud { display: flex; gap: 40px; margin-bottom: 6px; font-size: 14px; }
+body { 
+  background: #000; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  height: 100vh; 
+  font-family: 'Press Start 2P', monospace; 
+  color: #fff; 
+  overflow: hidden; /* Prevent mobile scroll */
+  touch-action: none;
+}
+
+h1 { font-size: 20px; color: #FFD700; margin-bottom: 15px; letter-spacing: 2px; text-shadow: 2px 2px #ff4500; }
+
+#top-bar { display: flex; justify-content: space-between; width: 504px; max-width: 100%; margin-bottom: 10px; }
+#hud { display: flex; gap: 15px; font-size: 10px; line-height: 24px; }
 .hud-label { color: #aaa; }
-.hud-val { color: #FFD700; font-weight: bold; }
-canvas { border: 2px solid #7b2fff; box-shadow: 0 0 20px #7b2fff; display: block; }
-#msg { margin-top: 10px; font-size: 12px; color: #aaa; }
-#start-btn { margin-top: 10px; padding: 10px 32px; background: #FFD700; color: #000; border: none; font-size: 15px; font-weight: bold; cursor: pointer; border-radius: 4px; letter-spacing: 2px; display:none; }
-#start-btn:hover { background: #fff; }
+.hud-val { color: #FFD700; }
+
+#mute-btn {
+  background: #333; color: #fff; border: 2px solid #555; padding: 5px 10px;
+  font-family: 'Press Start 2P', monospace; font-size: 10px; cursor: pointer; border-radius: 4px;
+}
+#mute-btn:hover { background: #555; }
+
+canvas { 
+  border: 4px solid #7b2fff; 
+  box-shadow: 0 0 15px #7b2fff; 
+  display: block; 
+  max-width: 100%;
+  image-rendering: pixelated;
+}
+
+#controls-msg { margin-top: 15px; font-size: 9px; color: #777; line-height: 1.5; text-align: center; }
+
+#start-btn { 
+  position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
+  padding: 15px 20px; background: #FFD700; color: #000; border: 4px solid #ff8c00; 
+  font-family: 'Press Start 2P', monospace; font-size: 12px; cursor: pointer; display:none; 
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+#start-btn:hover { background: #fff; border-color: #FFD700; }
 
 /* Power pellet UI */
-#power-bar-wrap {
-  width: 100%;
-  height: 0;
-  overflow: hidden;
-  transition: height 0.2s ease;
-  margin-bottom: 0;
-}
-#power-bar-wrap.active {
-  height: 20px;
-  margin-bottom: 6px;
-}
-#power-bar-bg {
-  width: 100%;
-  height: 20px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid rgba(255,200,50,0.5);
-}
-#power-bar-fill {
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(90deg, #ff8c00, #ffd700, #ff4500);
-  border-radius: 10px;
-  transition: width 0.1s linear;
-}
-#power-label {
-  position: absolute;
-  width: 100%;
-  text-align: center;
-  font-size: 11px;
-  font-weight: bold;
-  color: #000;
-  top: 0; left: 0;
-  line-height: 20px;
-  pointer-events: none;
-  letter-spacing: 1px;
-}
+#power-bar-wrap { width: 504px; max-width: 100%; height: 0; overflow: hidden; transition: height 0.2s ease; margin-bottom: 0; }
+#power-bar-wrap.active { height: 16px; margin-bottom: 10px; }
+#power-bar-bg { width: 100%; height: 16px; background: rgba(255,255,255,0.1); border: 2px solid #ffd700; }
+#power-bar-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff8c00, #ffd700); transition: width 0.1s linear; }
+#power-label { position: absolute; width: 100%; text-align: center; font-size: 8px; color: #000; top: 2px; left: 0; pointer-events: none; }
 
-canvas.powered {
-  box-shadow: 0 0 40px #ffd700, 0 0 80px #ff8c00 !important;
-  border-color: #ffd700 !important;
-}
-#power-indicator {
-  display: none;
-  font-size: 13px;
-  font-weight: bold;
-  color: #ffd700;
-  letter-spacing: 2px;
-  animation: blink 0.5s step-start infinite;
-  margin-bottom: 4px;
-}
+canvas.powered { box-shadow: 0 0 30px #ffd700 !important; border-color: #ffd700 !important; }
+#power-indicator { display: none; font-size: 10px; color: #ffd700; animation: blink 0.5s step-start infinite; margin-bottom: 10px; }
 #power-indicator.active { display: block; }
 @keyframes blink { 50% { opacity: 0; } }
 </style>
 </head>
 <body>
 <h1>🐱 CAT-MAN</h1>
-<div id="hud">
-  <span><span class="hud-label">SCORE </span><span class="hud-val" id="scoreEl">0</span></span>
-  <span><span class="hud-label">LIVES </span><span class="hud-val" id="livesEl">3</span></span>
-  <span><span class="hud-label">LEVEL </span><span class="hud-val" id="levelEl">1</span></span>
-  <span><span class="hud-label">HI </span><span class="hud-val" id="hiEl">0</span></span>
+
+<div id="top-bar">
+  <div id="hud">
+    <span><span class="hud-label">SCR </span><span class="hud-val" id="scoreEl">0</span></span>
+    <span><span class="hud-label">LVS </span><span class="hud-val" id="livesEl">3</span></span>
+    <span><span class="hud-label">LVL </span><span class="hud-val" id="levelEl">1</span></span>
+    <span><span class="hud-label">HI </span><span class="hud-val" id="hiEl">0</span></span>
+  </div>
+  <button id="mute-btn">🔊</button>
 </div>
-<div id="power-indicator">🐭 POWER MODE — MICE APPEAR! EAT THEM! 🐭</div>
+
+<div id="power-indicator">🐭 EAT THE MICE! 🐭</div>
 <div id="power-bar-wrap">
   <div id="power-bar-bg">
     <div id="power-bar-fill"></div>
-    <div id="power-label">🐾 POWER PELLET ACTIVE</div>
+    <div id="power-label">POWER MODE</div>
   </div>
 </div>
-<canvas id="c"></canvas>
-<div id="msg">Arrow Keys / WASD to move &nbsp;|&nbsp; P = pause &nbsp;|&nbsp; Enter = start &nbsp;|&nbsp; Catch the mice, avoid the dogs! 🐭🐶</div>
-<button id="start-btn" id="start-btn">START</button>
+
+<div style="position: relative;">
+  <canvas id="c"></canvas>
+  <button id="start-btn">START</button>
+</div>
+
+<div id="controls-msg">
+  Keyboard: Arrows / WASD | P = Pause<br><br>
+  Mobile: Swipe to move
+</div>
 
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 
 // ── TILE-BASED GRID ──────────────────────────────────────────────────────────
-// Movement is fully tile-based: Pac-Man moves one tile at a time on a timer.
-// This gives crisp, controllable movement like the original arcade game.
 const CELL = 24;
 const COLS = 21, ROWS = 21;
 canvas.width  = COLS * CELL;
 canvas.height = ROWS * CELL;
 
-// 0=open 1=wall 2=dot 3=power 4=empty(no dot, open corridor)
+// 0=open 1=wall 2=dot 3=power 4=empty(ghost house) 5=bonus(fish)
 const MAPS = [
   // LEVEL 1
   [
@@ -119,7 +122,7 @@ const MAPS = [
     [1,1,1,1,2,1,4,1,1,4,4,4,1,1,4,1,2,1,1,1,1],
     [4,4,4,4,2,4,4,1,4,4,4,4,4,1,4,4,2,4,4,4,4],
     [1,1,1,1,2,1,4,1,1,1,1,1,1,1,4,1,2,1,1,1,1],
-    [1,1,1,1,2,1,4,4,4,4,4,4,4,4,4,1,2,1,1,1,1],
+    [1,1,1,1,2,1,4,4,4,4,5,4,4,4,4,1,2,1,1,1,1],
     [1,1,1,1,2,1,4,1,1,1,1,1,1,1,4,1,2,1,1,1,1],
     [1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1],
     [1,2,1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,2,1],
@@ -127,9 +130,9 @@ const MAPS = [
     [1,1,2,1,2,1,2,1,1,1,1,1,1,1,2,1,2,1,2,1,1],
     [1,2,2,2,2,1,2,2,2,2,1,2,2,2,2,1,2,2,2,2,1],
     [1,2,1,1,1,1,1,1,2,1,1,1,2,1,1,1,1,1,1,2,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
   ],
-  // LEVEL 2 — different layout
+  // LEVEL 2
   [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,1],
@@ -141,7 +144,7 @@ const MAPS = [
     [1,1,1,1,2,1,4,4,4,4,1,4,4,4,4,1,2,1,1,1,1],
     [1,1,1,1,2,1,4,1,1,4,4,4,1,1,4,1,2,1,1,1,1],
     [4,4,4,4,2,4,4,1,4,4,4,4,4,1,4,4,2,4,4,4,4],
-    [1,1,1,1,2,1,4,1,4,4,4,4,4,1,4,1,2,1,1,1,1],
+    [1,1,1,1,2,1,4,1,4,4,5,4,4,1,4,1,2,1,1,1,1],
     [1,1,1,1,2,1,4,1,1,1,1,1,1,1,4,1,2,1,1,1,1],
     [1,1,1,1,2,1,4,4,4,4,4,4,4,4,4,1,2,1,1,1,1],
     [1,1,1,1,2,1,1,4,1,1,1,1,1,4,1,1,2,1,1,1,1],
@@ -151,27 +154,54 @@ const MAPS = [
     [1,2,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,2,1],
     [1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1],
     [1,2,1,1,1,1,1,2,1,1,1,1,1,2,1,1,1,1,1,2,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
   ],
+  // LEVEL 3 (Open Concept - FIXED 21 ROWS)
+  [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,3,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,3,1],
+    [1,2,1,1,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,2,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1],
+    [1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1],
+    [1,1,1,1,1,1,2,1,1,4,1,4,1,1,2,1,1,1,1,1,1],
+    [4,4,4,4,4,1,2,1,4,4,4,4,4,1,2,1,4,4,4,4,4],
+    [1,1,1,1,1,1,2,1,4,1,1,1,4,1,2,1,1,1,1,1,1],
+    [1,2,2,2,2,2,2,4,4,1,4,1,4,4,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,2,1,4,1,4,1,4,1,2,1,1,1,1,2,1],
+    [1,2,1,4,4,1,2,1,4,1,1,1,4,1,2,1,4,4,1,2,1],
+    [1,2,1,4,5,1,2,1,4,4,4,4,4,1,2,1,5,4,1,2,1],
+    [1,2,1,1,1,1,2,1,1,1,1,1,1,1,2,1,1,1,1,2,1],
+    [1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,2,1],
+    [1,3,2,2,2,2,2,2,2,2,4,2,2,2,2,2,2,2,2,3,1], // <-- Fixed spawn point (Col 10 is '4')
+    [1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1], // <-- New Row
+    [1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1], // <-- New Row
+    [1,2,1,1,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,2,1], // <-- New Row
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  // <-- New Row
+  ]
 ];
 
-// For level 3+ we reuse level 2 layout but speed increases
 function getMap(lvl) {
   const idx = Math.min(lvl - 1, MAPS.length - 1);
   return MAPS[idx].map(r => [...r]);
 }
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let map, score, hiScore=0, lives, level, totalDots, dotsEaten;
+let map, score, hiScore, lives, level, totalDots, dotsEaten;
 let pac, ghosts, powerFrames, gameState, paused;
-let moveTimer = 0;        // controls pac-man step rate
+let moveTimer = 0;
+let floatingTexts = [];
+let isMuted = false;
 
-// Speed: frames between each tile step (lower = faster)
-// Pac-Man: starts at 10 frames/step (~6 tiles/sec at 60fps), ghost slightly slower
-function pacSpeed() { return Math.max(12, 16 - Math.floor((level-1)/3)); } // comfortable speed, gentle level scaling
+// Init High Score from Local Storage
+hiScore = parseInt(localStorage.getItem('catman_hiscore')) || 0;
+document.getElementById('hiEl').textContent = hiScore;
+
+function pacSpeed() { return Math.max(10, 15 - Math.floor((level-1)/2)); } 
 
 function isWall(c, r) {
-  if (c < 0 || c >= COLS) return false; // tunnel columns
+  if (c < 0 || c >= COLS) return false;
   if (r < 0 || r >= ROWS) return true;
   return map[r][c] === 1;
 }
@@ -183,7 +213,7 @@ function initGame() {
   map = getMap(1);
   totalDots = countDots(); dotsEaten = 0;
   powerFrames = 0; paused = false; deactivatePowerUI();
-  moveTimer = 0; ghostTimer = 0;
+  moveTimer = 0; floatingTexts = [];
   initPac(); initGhosts();
   updateHUD();
 }
@@ -195,38 +225,32 @@ function countDots() {
 }
 
 function initPac() {
-  // Pac-Man starts at col 10, row 16 facing left
   pac = { c: 10, r: 16, dc: 0, dr: 0, ndc: -1, ndr: 0,
-          px: 10*CELL + CELL/2, py: 16*CELL + CELL/2,   // pixel pos for smooth draw
+          px: 10*CELL + CELL/2, py: 16*CELL + CELL/2,
           mouth: 0.1, mdir: 1, alive: true };
 }
 
 function initGhosts() {
-  // All ghosts start at different positions around the ghost house (row 9-11 area)
-  // They are placed on open tiles outside the house so they move immediately
   ghosts = [
-    { c:10, r:8,  dc:0, dr:-1, px:10*CELL+CELL/2, py:8*CELL+CELL/2,  color:'#FF0000', scared:false, eaten:false, moveTimer:0, spd:32, chaseP:0.40 }, // Blinky
-    { c:8,  r:10, dc:-1,dr:0,  px:8*CELL+CELL/2,  py:10*CELL+CELL/2, color:'#FFB8FF', scared:false, eaten:false, moveTimer:0, spd:36, chaseP:0.30 }, // Pinky
-    { c:12, r:10, dc:1, dr:0,  px:12*CELL+CELL/2, py:10*CELL+CELL/2, color:'#00FFFF', scared:false, eaten:false, moveTimer:0, spd:40, chaseP:0.25 }, // Inky
-    { c:10, r:12, dc:0, dr:1,  px:10*CELL+CELL/2, py:12*CELL+CELL/2, color:'#FFB852', scared:false, eaten:false, moveTimer:0, spd:38, chaseP:0.20 }, // Clyde
+    { c:10, r:8,  dc:0, dr:-1, px:10*CELL+CELL/2, py:8*CELL+CELL/2,  color:'#FF0000', scared:false, eaten:false, moveTimer:0, spd:28, chaseP:0.50 }, 
+    { c:8,  r:10, dc:-1,dr:0,  px:8*CELL+CELL/2,  py:10*CELL+CELL/2, color:'#FFB8FF', scared:false, eaten:false, moveTimer:0, spd:32, chaseP:0.40 }, 
+    { c:12, r:10, dc:1, dr:0,  px:12*CELL+CELL/2, py:10*CELL+CELL/2, color:'#00FFFF', scared:false, eaten:false, moveTimer:0, spd:36, chaseP:0.30 }, 
+    { c:10, r:12, dc:0, dr:1,  px:10*CELL+CELL/2, py:12*CELL+CELL/2, color:'#FFB852', scared:false, eaten:false, moveTimer:0, spd:40, chaseP:0.20 }, 
   ];
 }
 
-// ── TILE-BASED MOVEMENT ───────────────────────────────────────────────────────
-// Each entity moves exactly one tile per step. Steps happen on a timer.
-// Between steps we interpolate pixel position for smooth rendering.
+function spawnFloatingText(x, y, text, color='#FFD700') {
+  floatingTexts.push({ x, y, text, color, life: 45 });
+}
 
+// ── TILE-BASED MOVEMENT ───────────────────────────────────────────────────────
 function stepPac() {
-  // Try queued direction first
   const tc = pac.c + pac.ndc, tr = pac.r + pac.ndr;
-  if (isOpen(tc, tr)) {
-    pac.dc = pac.ndc; pac.dr = pac.ndr;
-  }
-  // Move in current direction
+  if (isOpen(tc, tr)) { pac.dc = pac.ndc; pac.dr = pac.ndr; }
+  
   const nc = pac.c + pac.dc, nr = pac.r + pac.dr;
   if (isOpen(nc, nr)) {
     pac.c = nc; pac.r = nr;
-    // Tunnel wrap
     if (pac.c < 0) pac.c = COLS - 1;
     if (pac.c >= COLS) pac.c = 0;
   }
@@ -247,28 +271,21 @@ function stepGhost(g) {
     return;
   }
 
-  // STRICT wall check: only consider tiles that are genuinely open
   const allDirs = [{dc:1,dr:0},{dc:-1,dr:0},{dc:0,dr:1},{dc:0,dr:-1}];
   const valid = allDirs.filter(d => {
-    if (d.dc === -g.dc && d.dr === -g.dr) return false; // no 180 unless forced
-    const nc = g.c + d.dc, nr = g.r + d.dr;
-    return isOpen(nc, nr); // isOpen checks map[r][c] !== 1, respects all walls
+    if (d.dc === -g.dc && d.dr === -g.dr) return false;
+    return isOpen(g.c + d.dc, g.r + d.dr);
   });
 
-  // If totally stuck, allow reversing
   const moves = valid.length > 0 ? valid : allDirs.filter(d => isOpen(g.c + d.dc, g.r + d.dr));
-  if (moves.length === 0) return; // completely surrounded — stay put
+  if (moves.length === 0) return;
 
   let chosen;
   if (g.scared) {
-    // Fully random when scared
     chosen = moves[Math.floor(Math.random() * moves.length)];
   } else {
-    // Each ghost has its own chase probability (Blinky 45%, down to Clyde 25%)
-    // Also only chase if within 10 tiles — beyond that, wander randomly
     const distToPac = Math.hypot(g.c - pac.c, g.r - pac.r);
-    const chase = distToPac < 10 && Math.random() < g.chaseP;
-    if (chase) {
+    if (distToPac < 12 && Math.random() < g.chaseP) {
       let best = Infinity;
       moves.forEach(d => {
         const dist = Math.hypot((g.c + d.dc) - pac.c, (g.r + d.dr) - pac.r);
@@ -280,12 +297,13 @@ function stepGhost(g) {
   }
 
   const nc = g.c + chosen.dc, nr = g.r + chosen.dr;
-  // Final safety check — NEVER move into a wall
   if (!isOpen(nc, nr)) return;
   g.dc = chosen.dc; g.dr = chosen.dr;
   g.c = nc; g.r = nr;
+  
   if (g.c < 0) g.c = COLS - 1;
   if (g.c >= COLS) g.c = 0;
+  
   g.px = g.c * CELL + CELL/2;
   g.py = g.r * CELL + CELL/2;
 }
@@ -295,14 +313,19 @@ function checkDots() {
   const t = map[pac.r]?.[pac.c];
   if (t === 2) {
     map[pac.r][pac.c] = 0; score += 10; dotsEaten++;
-    playBeep(440, 0.05);
+    playBeep();
   } else if (t === 3) {
     map[pac.r][pac.c] = 0; score += 50; dotsEaten++;
-    powerFrames = 60 * 15; // 15 seconds
+    powerFrames = 60 * 15;
     ghosts.forEach(g => { if (!g.eaten) g.scared = true; });
-    playPowerActivate();
-    activatePowerUI();
+    playPowerActivate(); activatePowerUI();
+    spawnFloatingText(pac.px, pac.py, 'POWER!', '#fff');
+  } else if (t === 5) {
+    map[pac.r][pac.c] = 0; score += 500;
+    playEatMouse(); // Fish uses same excited sound
+    spawnFloatingText(pac.px, pac.py, '500', '#00FFFF');
   }
+  
   updateHUD();
   if (dotsEaten >= totalDots) {
     gameState = 'levelclear';
@@ -317,6 +340,7 @@ function checkCollisions() {
       if (g.scared) {
         g.scared = false; g.eaten = true;
         score += 200; playEatMouse(); updateHUD();
+        spawnFloatingText(g.px, g.py, '200', '#FFD700');
       } else {
         pacDie();
       }
@@ -326,60 +350,54 @@ function checkCollisions() {
 
 function pacDie() {
   if (!pac.alive) return;
-  pac.alive = false;
-  lives--;
+  pac.alive = false; lives--;
   playDeath(); updateHUD();
+  
+  if (score > hiScore) {
+    hiScore = score;
+    localStorage.setItem('catman_hiscore', hiScore);
+    document.getElementById('hiEl').textContent = hiScore;
+  }
+  
   if (lives <= 0) {
-    if (score > hiScore) hiScore = score;
     gameState = 'gameover';
     const btn = document.getElementById('start-btn');
-    btn.textContent = '🐱 PLAY AGAIN'; btn.style.display = 'block';
+    btn.textContent = 'PLAY AGAIN'; btn.style.display = 'block';
   } else {
     gameState = 'dead';
-    setTimeout(() => { initPac(); initGhosts(); powerFrames = 0; gameState = 'playing'; }, 1400);
+    setTimeout(() => { initPac(); initGhosts(); powerFrames = 0; deactivatePowerUI(); gameState = 'playing'; }, 1800);
   }
 }
 
 function nextLevel() {
-  playLevelClear();
-  level++;
+  playLevelClear(); level++;
   map = getMap(level);
   totalDots = countDots(); dotsEaten = 0;
-  powerFrames = 0; moveTimer = 0; ghostTimer = 0;
-  initPac(); initGhosts();
-  gameState = 'playing';
-  updateHUD();
+  powerFrames = 0; moveTimer = 0; floatingTexts = [];
+  initPac(); initGhosts(); deactivatePowerUI();
+  gameState = 'playing'; updateHUD();
 }
 
 // ── MAIN LOOP ─────────────────────────────────────────────────────────────────
 let raf;
-// Fixed timestep: all game logic runs at exactly 60fps regardless of display Hz
 const MS_PER_TICK = 1000 / 60;
 let lastTimestamp = 0;
 let accumulator = 0;
 
 function loop(timestamp) {
   raf = requestAnimationFrame(loop);
-
-  // Cap delta to 200ms to avoid spiral of death after tab focus loss
   const delta = Math.min(timestamp - lastTimestamp, 200);
   lastTimestamp = timestamp;
 
   if (gameState !== 'playing' || paused) { draw(); return; }
 
   accumulator += delta;
-
-  // Run as many fixed 60fps ticks as have accumulated
   while (accumulator >= MS_PER_TICK) {
     accumulator -= MS_PER_TICK;
 
-    // Pac-Man steps
     moveTimer++;
     if (moveTimer >= pacSpeed()) {
-      moveTimer = 0;
-      stepPac();
-      checkDots();
-      checkCollisions();
+      moveTimer = 0; stepPac(); checkDots(); checkCollisions();
       if (pac.dc !== 0 || pac.dr !== 0) {
         pac.mouth += pac.mdir * 0.15;
         if (pac.mouth > 0.38) pac.mdir = -1;
@@ -387,17 +405,13 @@ function loop(timestamp) {
       }
     }
 
-    // Ghost steps — each on own timer
     ghosts.forEach(g => {
       g.moveTimer = (g.moveTimer || 0) + 1;
       if (g.moveTimer >= g.spd) {
-        g.moveTimer = 0;
-        stepGhost(g);
-        checkCollisions();
+        g.moveTimer = 0; stepGhost(g); checkCollisions();
       }
     });
 
-    // Power pellet countdown
     if (powerFrames > 0) {
       powerFrames--;
       if (powerFrames === 0) {
@@ -405,9 +419,10 @@ function loop(timestamp) {
         deactivatePowerUI();
       }
     }
-
-    // Flash countdown
-    if (flashFrames > 0) flashFrames--;
+    
+    // Animate floating texts
+    floatingTexts.forEach(ft => ft.life--);
+    floatingTexts = floatingTexts.filter(ft => ft.life > 0);
   }
 
   updatePowerBar();
@@ -416,17 +431,14 @@ function loop(timestamp) {
 
 // ── DRAW ──────────────────────────────────────────────────────────────────────
 function draw() {
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Maze tiles
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const v = map[r][c];
       const x = c * CELL, y = r * CELL;
       if (v === 1) {
-        ctx.fillStyle = '#1a0a2e';
-        ctx.fillRect(x, y, CELL, CELL);
+        ctx.fillStyle = '#1a0a2e'; ctx.fillRect(x, y, CELL, CELL);
         ctx.strokeStyle = '#7b2fff'; ctx.lineWidth = 1.5;
         const sides = [[0,0,CELL,0],[CELL,0,CELL,CELL],[CELL,CELL,0,CELL],[0,CELL,0,0]];
         const nbrs  = [[0,-1],[1,0],[0,1],[-1,0]];
@@ -436,242 +448,107 @@ function draw() {
             ctx.beginPath(); ctx.moveTo(x+x1,y+y1); ctx.lineTo(x+x2,y+y2); ctx.stroke();
           }
         });
-      } else if (v === 4 && powerFrames > 0) {
-        // Revival zone warning — pulses red/orange during power mode
-        const danger = 0.15 + 0.1 * Math.sin(Date.now() / 150);
-        ctx.fillStyle = `rgba(255, 60, 0, ${danger})`;
-        ctx.fillRect(x, y, CELL, CELL);
       } else if (v === 2) {
-        ctx.fillStyle = '#aaddff';
-        ctx.beginPath(); ctx.arc(x+CELL/2, y+CELL/2, 2.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#aaddff'; ctx.beginPath(); ctx.arc(x+CELL/2, y+CELL/2, 2.5, 0, Math.PI*2); ctx.fill();
       } else if (v === 3) {
         const pulse = 0.65 + 0.35 * Math.sin(Date.now() / 200);
         ctx.fillStyle = `rgba(255,200,50,${pulse})`;
         ctx.beginPath(); ctx.arc(x+CELL/2, y+CELL/2, 6, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = `rgba(255,150,0,0.25)`;
-        ctx.beginPath(); ctx.arc(x+CELL/2, y+CELL/2, 10, 0, Math.PI*2); ctx.fill();
+      } else if (v === 5) {
+        // Bonus Fish 🐟
+        ctx.font = '16px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('🐟', x+CELL/2, y+CELL/2 + 6);
       }
     }
   }
 
-  // Cat-Man
-  if (pac) {
+  // Draw Cat-Man
+  if (pac && pac.alive) {
     const cx = pac.px, cy = pac.py, r = CELL/2 - 1;
-    // Body
+    ctx.fillStyle = '#FF8C00'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#FF8C00';
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-    // Ears (two triangles on top)
-    ctx.fillStyle = '#FF8C00';
-    [[-0.55, 0.55], [0.55, 0.55]].forEach(([ex, _]) => {
-      ctx.beginPath();
-      ctx.moveTo(cx + ex*r, cy - r*0.3);
-      ctx.lineTo(cx + (ex-0.25)*r, cy - r*1.05);
-      ctx.lineTo(cx + (ex+0.25)*r, cy - r*1.05);
-      ctx.closePath(); ctx.fill();
+    [[-0.55, 0.55], [0.55, 0.55]].forEach(([ex]) => {
+      ctx.beginPath(); ctx.moveTo(cx + ex*r, cy - r*0.3);
+      ctx.lineTo(cx + (ex-0.25)*r, cy - r*1.05); ctx.lineTo(cx + (ex+0.25)*r, cy - r*1.05); ctx.fill();
     });
-    // Inner ears
-    ctx.fillStyle = '#ffb6c1';
-    [[-0.55], [0.55]].forEach(([ex]) => {
-      ctx.beginPath();
-      ctx.moveTo(cx + ex*r, cy - r*0.35);
-      ctx.lineTo(cx + (ex-0.13)*r, cy - r*0.88);
-      ctx.lineTo(cx + (ex+0.13)*r, cy - r*0.88);
-      ctx.closePath(); ctx.fill();
-    });
-    // Eyes (green)
     ctx.fillStyle = '#00cc44';
     ctx.beginPath(); ctx.ellipse(cx - r*0.32, cy - r*0.1, r*0.18, r*0.22, 0, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(cx + r*0.32, cy - r*0.1, r*0.18, r*0.22, 0, 0, Math.PI*2); ctx.fill();
-    // Pupils
     ctx.fillStyle = '#000';
     ctx.beginPath(); ctx.ellipse(cx - r*0.32, cy - r*0.1, r*0.07, r*0.16, 0, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(cx + r*0.32, cy - r*0.1, r*0.07, r*0.16, 0, 0, Math.PI*2); ctx.fill();
-    // Nose
-    ctx.fillStyle = '#ff69b4';
-    ctx.beginPath(); ctx.arc(cx, cy + r*0.15, r*0.1, 0, Math.PI*2); ctx.fill();
-    // Mouth open/close based on mouth angle
+    
+    // Animated Mouth
     ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2;
     const mOpen = pac.mouth * 3;
     ctx.beginPath(); ctx.moveTo(cx, cy + r*0.25);
     ctx.quadraticCurveTo(cx - r*0.25, cy + r*0.25 + mOpen*4, cx - r*0.4, cy + r*0.2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(cx, cy + r*0.25);
     ctx.quadraticCurveTo(cx + r*0.25, cy + r*0.25 + mOpen*4, cx + r*0.4, cy + r*0.2); ctx.stroke();
-    // Whiskers
-    ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1;
-    [[-1,-0.05],[- 1,0.1],[-1,0.25]].forEach(([wx,wy])=>{
-      ctx.beginPath(); ctx.moveTo(cx + wx*r*0.35, cy + wy*r);
-      ctx.lineTo(cx + wx*r*1.1, cy + wy*r - r*0.05); ctx.stroke();
-    });
-    [[1,-0.05],[1,0.1],[1,0.25]].forEach(([wx,wy])=>{
-      ctx.beginPath(); ctx.moveTo(cx + wx*r*0.35, cy + wy*r);
-      ctx.lineTo(cx + wx*r*1.1, cy + wy*r - r*0.05); ctx.stroke();
-    });
   }
 
-  // Normal = 🐶 Dogs chasing cat. Power pellet = 🐭 Colourful scared mice!
-  const MOUSE_COLORS = ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#FF922B','#cc5de8','#20c997','#f06595'];
+  // Draw Ghosts/Mice
+  const MOUSE_COLORS = ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF'];
   ghosts.forEach((g, gi) => {
     const gx = g.px, gy = g.py, R = CELL/2 - 1;
     const flash = powerFrames > 0 && powerFrames < 180 && Math.floor(Date.now()/220)%2===0;
 
     if (g.eaten) {
-      // Paw prints left behind
-      ctx.fillStyle = 'rgba(255,180,100,0.4)';
-      ctx.beginPath(); ctx.arc(gx, gy, R*0.4, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,180,100,0.2)';
-      [-6,6].forEach(ox => { ctx.beginPath(); ctx.arc(gx+ox, gy-R*0.5, R*0.18, 0, Math.PI*2); ctx.fill(); });
+      ctx.fillStyle = 'rgba(255,180,100,0.4)'; ctx.beginPath(); ctx.arc(gx, gy, R*0.4, 0, Math.PI*2); ctx.fill();
       return;
     }
 
     if (g.scared) {
-      // 🐭 Scared colourful mice — cat can eat these!
+      // Draw Mouse
       const mc = flash ? '#ffffff' : MOUSE_COLORS[gi % MOUSE_COLORS.length];
-      // Body
-      ctx.fillStyle = mc;
-      ctx.beginPath(); ctx.ellipse(gx, gy+2, R*0.75, R*0.6, 0, 0, Math.PI*2); ctx.fill();
-      // Head
+      ctx.fillStyle = mc; ctx.beginPath(); ctx.ellipse(gx, gy+2, R*0.75, R*0.6, 0, 0, Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.arc(gx, gy - R*0.25, R*0.65, 0, Math.PI*2); ctx.fill();
-      // Round ears
       ctx.beginPath(); ctx.arc(gx - R*0.5, gy - R*0.75, R*0.32, 0, Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.arc(gx + R*0.5, gy - R*0.75, R*0.32, 0, Math.PI*2); ctx.fill();
-      // Inner ears (pink always)
-      ctx.fillStyle = flash ? '#ffaacc' : '#ffb6c1';
-      ctx.beginPath(); ctx.arc(gx - R*0.5, gy - R*0.75, R*0.18, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(gx + R*0.5, gy - R*0.75, R*0.18, 0, Math.PI*2); ctx.fill();
-      // Scared X eyes
       ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
       [[-0.28],[0.28]].forEach(([ox]) => {
         ctx.beginPath(); ctx.moveTo(gx+ox*R-3, gy-R*0.38-3); ctx.lineTo(gx+ox*R+3, gy-R*0.38+3); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(gx+ox*R+3, gy-R*0.38-3); ctx.lineTo(gx+ox*R-3, gy-R*0.38+3); ctx.stroke();
       });
-      // Trembling mouth (wavy)
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(gx - R*0.25, gy - R*0.05);
-      ctx.quadraticCurveTo(gx, gy - R*0.18, gx + R*0.25, gy - R*0.05);
-      ctx.stroke();
-      // Snout
-      ctx.fillStyle = flash ? '#ffaacc' : '#ffb6c1';
-      ctx.beginPath(); ctx.ellipse(gx, gy - R*0.1, R*0.2, R*0.13, 0, 0, Math.PI*2); ctx.fill();
-      // Tail (curly, coloured)
-      ctx.strokeStyle = mc; ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(gx + R*0.7, gy + R*0.4);
-      ctx.bezierCurveTo(gx+R*1.4, gy+R*0.8, gx+R*1.6, gy-R*0.2, gx+R*1.1, gy-R*0.5);
-      ctx.stroke();
-      // Star sparkles around scared mouse
-      if (!flash) {
-        ctx.fillStyle = mc;
-        [[R*1.2,-R*0.8],[- R*1.1,-R*0.6],[R*1.0,R*0.2]].forEach(([sx,sy]) => {
-          ctx.font = '9px serif'; ctx.textAlign='center';
-          ctx.fillText('✦', gx+sx, gy+sy);
-        });
-      }
     } else {
-      // 🐶 Normal dog — dangerous! Chases the cat
-      ctx.fillStyle = g.color;
-      // Body
-      ctx.beginPath(); ctx.ellipse(gx, gy+2, R*0.85, R*0.7, 0, 0, Math.PI*2); ctx.fill();
-      // Head
+      // Draw Dog
+      ctx.fillStyle = g.color; ctx.beginPath(); ctx.ellipse(gx, gy+2, R*0.85, R*0.7, 0, 0, Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.arc(gx, gy - R*0.3, R*0.72, 0, Math.PI*2); ctx.fill();
-      // Floppy ears
-      const earCol = g.color === '#FF0000' ? '#cc0000'
-                   : g.color === '#FFB8FF' ? '#dd88dd'
-                   : g.color === '#00FFFF' ? '#00aaaa'
-                   : '#cc8800';
-      ctx.fillStyle = earCol;
-      ctx.beginPath(); ctx.ellipse(gx - R*0.68, gy - R*0.1, R*0.26, R*0.52, -0.25, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(gx + R*0.68, gy - R*0.1, R*0.26, R*0.52,  0.25, 0, Math.PI*2); ctx.fill();
-      // Snout
-      ctx.fillStyle = earCol;
-      ctx.beginPath(); ctx.ellipse(gx, gy - R*0.05, R*0.3, R*0.22, 0, 0, Math.PI*2); ctx.fill();
-      // Eyes (angry — angled brows)
       ctx.fillStyle = '#fff';
       ctx.beginPath(); ctx.ellipse(gx-R*0.28, gy-R*0.38, R*0.16, R*0.14, 0, 0, Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.ellipse(gx+R*0.28, gy-R*0.38, R*0.16, R*0.14, 0, 0, Math.PI*2); ctx.fill();
       ctx.fillStyle = '#111';
       ctx.beginPath(); ctx.arc(gx-R*0.28+g.dc*2, gy-R*0.38+g.dr*2, R*0.09, 0, Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.arc(gx+R*0.28+g.dc*2, gy-R*0.38+g.dr*2, R*0.09, 0, Math.PI*2); ctx.fill();
-      // Angry brows
       ctx.strokeStyle = '#000'; ctx.lineWidth = 1.8;
       ctx.beginPath(); ctx.moveTo(gx-R*0.42, gy-R*0.58); ctx.lineTo(gx-R*0.14, gy-R*0.52); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(gx+R*0.14, gy-R*0.52); ctx.lineTo(gx+R*0.42, gy-R*0.58); ctx.stroke();
-      // Nose
-      ctx.fillStyle = '#111';
-      ctx.beginPath(); ctx.ellipse(gx, gy-R*0.12, R*0.14, R*0.1, 0, 0, Math.PI*2); ctx.fill();
-      // Mouth (growling)
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(gx - R*0.28, gy + R*0.1);
-      ctx.quadraticCurveTo(gx, gy + R*0.22, gx + R*0.28, gy + R*0.1);
-      ctx.stroke();
-      // Wagging tail
-      const wag = Math.sin(Date.now() / 120) * 0.4;
-      ctx.strokeStyle = earCol; ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(gx + R*0.8, gy + R*0.3);
-      ctx.quadraticCurveTo(gx+R*1.5+wag*10, gy-R*0.3, gx+R*1.2, gy-R*0.9);
-      ctx.stroke();
     }
   });
-
-  // State overlays
-  if (gameState === 'levelclear') {
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#FFD700'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
-    ctx.fillText('LEVEL CLEAR! 🐱✨', canvas.width/2, canvas.height/2 - 10);
-    ctx.font = '16px monospace'; ctx.fillStyle = '#fff';
-    ctx.fillText(`Level ${level + 1} incoming...`, canvas.width/2, canvas.height/2 + 22);
-  }
-  if (gameState === 'gameover') {
-    ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#f55'; ctx.font = 'bold 30px monospace'; ctx.textAlign = 'center';
-    ctx.fillText('A DOG CAUGHT YOU! 🐶', canvas.width/2, canvas.height/2 - 10);
-    ctx.font = '15px monospace'; ctx.fillStyle = '#aaa';
-    ctx.fillText(`Score: ${score}  |  Best: ${hiScore}`, canvas.width/2, canvas.height/2 + 22);
-  }
-  if (paused && gameState === 'playing') {
-    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#FFD700'; ctx.font = 'bold 22px monospace'; ctx.textAlign = 'center';
-    ctx.fillText('⏸ PAUSED', canvas.width/2, canvas.height/2);
-    ctx.font = '13px monospace'; ctx.fillStyle = '#aaa';
-    ctx.fillText('P to resume', canvas.width/2, canvas.height/2 + 26);
-  }
-  // Revival zone caution overlay during power mode
-  if (powerFrames > 0) {
-    const zoneX = 6 * CELL, zoneY = 7 * CELL;
-    const zoneW = 9 * CELL, zoneH = 7 * CELL;
-    const pulse = 0.6 + 0.4 * Math.sin(Date.now() / 200);
-    const flashWarn = powerFrames < 180 && Math.floor(Date.now()/220)%2===0;
-    // Dashed pulsing border
-    ctx.strokeStyle = flashWarn ? `rgba(255,255,0,${pulse})` : `rgba(255,60,0,${pulse})`;
-    ctx.lineWidth = 2.5;
-    ctx.setLineDash([6, 4]);
-    ctx.strokeRect(zoneX + 1, zoneY + 1, zoneW - 2, zoneH - 2);
-    ctx.setLineDash([]);
-    // Warning label above zone
-    ctx.font = 'bold 9px monospace';
+  
+  // Draw Floating Texts (Scores)
+  floatingTexts.forEach(ft => {
+    ctx.fillStyle = ft.color;
+    ctx.globalAlpha = ft.life / 45; // Fade out
+    ctx.font = '10px "Press Start 2P"';
     ctx.textAlign = 'center';
-    ctx.fillStyle = flashWarn ? '#ffff00' : `rgba(255,100,0,${pulse})`;
-    ctx.fillText('⚠ REVIVAL ZONE — STAY OUT ⚠', zoneX + zoneW/2, zoneY - 4);
-    // Skull icons at corners
-    ctx.font = '11px serif';
-    [[zoneX+8, zoneY+14],[zoneX+zoneW-8, zoneY+14],
-     [zoneX+8, zoneY+zoneH-3],[zoneX+zoneW-8, zoneY+zoneH-3]].forEach(([cx,cy]) => {
-      ctx.fillText('💀', cx, cy);
-    });
-  }
+    ctx.fillText(ft.text, ft.x, ft.y - (45 - ft.life) * 0.5);
+    ctx.globalAlpha = 1.0;
+  });
 
-  // Canvas flash overlay
-  if (flashFrames > 0) {
-    const idx = Math.floor((1 - flashFrames/FLASH_DURATION) * flashColors.length);
-    ctx.fillStyle = flashColors[Math.min(idx, flashColors.length-1)];
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    flashFrames--;
-  }
+  // Overlays
+  if (gameState === 'levelclear') drawOverlay('LEVEL CLEAR', '#FFD700');
+  if (gameState === 'gameover') drawOverlay('GAME OVER', '#f55');
+  if (paused && gameState === 'playing') drawOverlay('PAUSED', '#FFD700');
 }
 
-// ── INPUT ─────────────────────────────────────────────────────────────────────
+function drawOverlay(text, color) {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = color; ctx.font = '20px "Press Start 2P"'; ctx.textAlign = 'center';
+  ctx.fillText(text, canvas.width/2, canvas.height/2);
+}
+
+// ── INPUT (Keyboard & Touch) ──────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   const dirs = {
     ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1],
@@ -687,139 +564,92 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ── HUD / START ───────────────────────────────────────────────────────────────
-function updateHUD() {
-  document.getElementById('scoreEl').textContent = score;
-  document.getElementById('livesEl').textContent = lives;
-  document.getElementById('levelEl').textContent = level;
-  document.getElementById('hiEl').textContent = hiScore;
-}
+// Mobile Swipe Controls
+let touchStartX = 0, touchStartY = 0;
+canvas.addEventListener('touchstart', e => {
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+}, {passive: false});
 
+canvas.addEventListener('touchend', e => {
+  if (gameState !== 'playing') return;
+  let dx = e.changedTouches[0].screenX - touchStartX;
+  let dy = e.changedTouches[0].screenY - touchStartY;
+  
+  if (Math.abs(dx) > Math.abs(dy)) { // Horizontal swipe
+    if (dx > 30) { pac.ndc = 1; pac.ndr = 0; }
+    else if (dx < -30) { pac.ndc = -1; pac.ndr = 0; }
+  } else { // Vertical swipe
+    if (dy > 30) { pac.ndc = 0; pac.ndr = 1; }
+    else if (dy < -30) { pac.ndc = 0; pac.ndr = -1; }
+  }
+}, {passive: false});
+
+// Prevent screen scroll while swiping on canvas
+canvas.addEventListener('touchmove', e => e.preventDefault(), {passive: false});
+
+// Mute Logic
+document.getElementById('mute-btn').addEventListener('click', function() {
+  isMuted = !isMuted;
+  this.textContent = isMuted ? '🔇' : '🔊';
+});
+
+// ── AUDIO SYSTEM ─────────────────────────────────────────────────────────────
 let audioCtx;
 function getAC() {
   if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
   return audioCtx;
 }
 
-// ── CAT SOUND ENGINE — FM synthesis for realistic cat sounds ─────────────────
-function getAC() {
-  if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-  return audioCtx;
-}
-
-// Core: FM meow — carrier + modulator creates that nasal cat vowel quality
 function fmMeow(startFreq, endFreq, dur, vol=0.22, modRatio=2.5, modDepth=120, startAt=0) {
+  if (isMuted) return;
   try {
     const ac = getAC(), t = ac.currentTime + startAt;
-    // Carrier
-    const car = ac.createOscillator();
-    const carGain = ac.createGain();
-    // Modulator (FM)
-    const mod = ac.createOscillator();
-    const modGain = ac.createGain();
-    car.type = 'sine';
-    mod.type = 'sine';
-    car.frequency.setValueAtTime(startFreq, t);
-    car.frequency.exponentialRampToValueAtTime(endFreq, t + dur * 0.7);
-    car.frequency.exponentialRampToValueAtTime(endFreq * 0.85, t + dur);
-    mod.frequency.setValueAtTime(startFreq * modRatio, t);
-    mod.frequency.exponentialRampToValueAtTime(endFreq * modRatio, t + dur * 0.7);
-    modGain.gain.setValueAtTime(modDepth, t);
-    modGain.gain.linearRampToValueAtTime(modDepth * 0.3, t + dur);
-    // Envelope: fast attack, long sustain, tail off
-    carGain.gain.setValueAtTime(0, t);
-    carGain.gain.linearRampToValueAtTime(vol, t + 0.04);
-    carGain.gain.setValueAtTime(vol, t + dur * 0.5);
+    const car = ac.createOscillator(), carGain = ac.createGain();
+    const mod = ac.createOscillator(), modGain = ac.createGain();
+    car.type = 'sine'; mod.type = 'sine';
+    car.frequency.setValueAtTime(startFreq, t); car.frequency.exponentialRampToValueAtTime(endFreq, t + dur * 0.7);
+    mod.frequency.setValueAtTime(startFreq * modRatio, t); mod.frequency.exponentialRampToValueAtTime(endFreq * modRatio, t + dur * 0.7);
+    modGain.gain.setValueAtTime(modDepth, t); modGain.gain.linearRampToValueAtTime(modDepth * 0.3, t + dur);
+    carGain.gain.setValueAtTime(0, t); carGain.gain.linearRampToValueAtTime(vol, t + 0.04);
     carGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
     mod.connect(modGain); modGain.connect(car.frequency);
     car.connect(carGain); carGain.connect(ac.destination);
-    mod.start(t); mod.stop(t + dur);
-    car.start(t); car.stop(t + dur);
+    mod.start(t); mod.stop(t + dur); car.start(t); car.stop(t + dur);
   } catch(e) {}
 }
 
-// Purr: low amplitude noise-like tremolo
-function purr(dur=0.4, vol=0.12, startAt=0) {
-  try {
-    const ac = getAC(), t = ac.currentTime + startAt;
-    const o = ac.createOscillator(), g = ac.createGain();
-    const lfo = ac.createOscillator(), lfog = ac.createGain();
-    o.type = 'sawtooth'; o.frequency.value = 90;
-    lfo.type = 'square'; lfo.frequency.value = 25; // purr rumble rate
-    lfog.gain.value = 0.08;
-    lfo.connect(lfog); lfog.connect(g.gain);
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(g); g.connect(ac.destination);
-    lfo.start(t); lfo.stop(t + dur);
-    o.start(t); o.stop(t + dur);
-  } catch(e) {}
+function playBeep() { fmMeow(750, 500, 0.09, 0.1, 3, 60); }
+function playEatMouse() { fmMeow(400, 900, 0.12, 0.2, 2.5, 100); setTimeout(() => fmMeow(900, 700, 0.1, 0.18, 2, 80), 110); }
+function playPowerActivate() { fmMeow(280, 680, 0.28, 0.28, 2.5, 150); }
+function playDeath() { fmMeow(550, 320, 0.3, 0.3, 2, 180); setTimeout(() => fmMeow(320, 180, 0.3, 0.28, 3, 140), 280); }
+function playLevelClear() { [220, 280, 350, 440, 560].forEach((f, i) => setTimeout(() => fmMeow(f, f*1.3, 0.18, 0.2, 2, 100), i * 120)); }
+
+// ── UI UPDATES ───────────────────────────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('scoreEl').textContent = score;
+  document.getElementById('livesEl').textContent = lives;
+  document.getElementById('levelEl').textContent = level;
 }
 
-// Hiss: filtered noise
-function hiss(dur=0.3, vol=0.15, startAt=0) {
-  try {
-    const ac = getAC(), t = ac.currentTime + startAt;
-    const buf = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random()*2-1);
-    const src = ac.createBufferSource();
-    src.buffer = buf;
-    const filter = ac.createBiquadFilter();
-    filter.type = 'bandpass'; filter.frequency.value = 3500; filter.Q.value = 0.8;
-    const g = ac.createGain();
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    src.connect(filter); filter.connect(g); g.connect(ac.destination);
-    src.start(t); src.stop(t + dur);
-  } catch(e) {}
+function activatePowerUI() {
+  canvas.classList.add('powered');
+  document.getElementById('power-bar-wrap').classList.add('active');
+  document.getElementById('power-indicator').classList.add('active');
 }
 
-// 🐱 Eat dot — quick soft chirp "prrt"
-function playBeep() {
-  fmMeow(750, 500, 0.09, 0.1, 3, 60);
+function deactivatePowerUI() {
+  canvas.classList.remove('powered');
+  document.getElementById('power-bar-wrap').classList.remove('active');
+  document.getElementById('power-indicator').classList.remove('active');
 }
 
-// 🐱 Eat mouse — excited "mrrrow!" chirp trill
-function playEatMouse() {
-  fmMeow(400, 900, 0.12, 0.2, 2.5, 100);
-  setTimeout(() => fmMeow(900, 700, 0.1, 0.18, 2, 80), 110);
-  setTimeout(() => fmMeow(600, 400, 0.12, 0.15, 3, 60), 210);
-}
-
-// 🐱 Power pellet — full dramatic "MEEEOOOOW" rising then falling
-function playPowerMeow() {
-  fmMeow(280, 680, 0.28, 0.28, 2.5, 150);          // "MEEE"
-  setTimeout(() => fmMeow(680, 820, 0.22, 0.25, 2, 120), 260);  // "OOO"
-  setTimeout(() => fmMeow(820, 380, 0.35, 0.22, 3, 90), 460);   // "OW" falling
-}
-
-// 😼 Power activate — hiss then excited meow
-function playPowerActivate() {
-  hiss(0.2, 0.18);
-  setTimeout(() => playPowerMeow(), 150);
-}
-
-// 😿 Death — long mournful yowl descending into growl
-function playDeath() {
-  fmMeow(550, 320, 0.3, 0.3, 2, 180);
-  setTimeout(() => fmMeow(320, 180, 0.3, 0.28, 3, 140), 280);
-  setTimeout(() => fmMeow(180, 90,  0.4, 0.25, 4, 100), 550);
-  setTimeout(() => purr(0.5, 0.18), 900);  // low growl at the end
-}
-
-// 😟 Power expiring — two short anxious meows
-function playPowerWarning() {
-  fmMeow(500, 350, 0.12, 0.15, 2.5, 80);
-  setTimeout(() => fmMeow(500, 300, 0.14, 0.13, 2.5, 80), 220);
-}
-
-// 😸 Level clear — ascending happy meow trill + purr
-function playLevelClear() {
-  [220, 280, 350, 440, 560, 700].forEach((f, i) =>
-    setTimeout(() => fmMeow(f, f*1.3, 0.18, 0.2, 2, 100), i * 120)
-  );
-  setTimeout(() => purr(0.6, 0.15), 800);
+function updatePowerBar() {
+  if (powerFrames <= 0) return;
+  const pct = (powerFrames / (60*15)) * 100;
+  document.getElementById('power-bar-fill').style.width = pct + '%';
+  const fill = document.getElementById('power-bar-fill');
+  fill.style.background = powerFrames < 180 && Math.floor(Date.now()/200)%2===0 ? '#ff2200' : 'linear-gradient(90deg, #ff8c00, #ffd700)';
 }
 
 function startGame() {
@@ -828,49 +658,9 @@ function startGame() {
   if (!raf) requestAnimationFrame(ts => { lastTimestamp = ts; loop(ts); });
 }
 
-// ── POWER UI ─────────────────────────────────────────────────────────────────
-const POWER_TOTAL = 60 * 7;
-// Flash state
-let flashFrames = 0;
-const FLASH_TOTAL = 45;
-const FLASH_COLS = ['#ff8c00','#ffaa00','#ffcc00','#ffffff','#ffcc00','#ffaa00',
-  'rgba(255,140,0,0.7)','rgba(255,140,0,0.45)','rgba(255,140,0,0.25)',
-  'rgba(255,140,0,0.1)','rgba(0,0,0,0)'];
-
-function activatePowerUI() {
-  flashFrames = FLASH_TOTAL;
-  canvas.classList.add('powered');
-  document.getElementById('power-bar-wrap').classList.add('active');
-  document.getElementById('power-indicator').classList.add('active');
-  [300,400,500,600].forEach((f,i) => setTimeout(() => playBeep(f, 0.08, 'square'), i*60));
-}
-function deactivatePowerUI() {
-  canvas.classList.remove('powered');
-  document.getElementById('power-bar-wrap').classList.remove('active');
-  document.getElementById('power-indicator').classList.remove('active');
-  playPowerWarning();
-}
-function updatePowerBar() {
-  if (powerFrames <= 0) return;
-  const pct = (powerFrames / POWER_TOTAL) * 100;
-  document.getElementById('power-bar-fill').style.width = pct + '%';
-  // Flash red when low
-  const fill = document.getElementById('power-bar-fill');
-  if (powerFrames < 180) {
-    fill.style.background = Math.floor(Date.now()/200)%2===0 ? '#ff2200' : '#ff8800';
-  } else {
-    fill.style.background = 'linear-gradient(90deg, #ff8c00, #ffd700, #ff4500)';
-  }
-}
-
-// Show start button initially
 document.getElementById('start-btn').style.display = 'block';
-document.getElementById('start-btn').textContent = '🐱 START GAME';
 document.getElementById('start-btn').onclick = startGame;
-
-// Draw initial blank maze while waiting
-initGame(); gameState = 'idle';
-loop();
+initGame(); gameState = 'idle'; loop();
 </script>
 </body>
 </html>
